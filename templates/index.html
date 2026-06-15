@@ -242,12 +242,85 @@
             font-size: 13px;
             font-weight: 600;
         }
-    </style>
+        .switch-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+        }
+        .switch-label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        .switch-desc {
+            color: #888;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 26px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+        .divider {
+            height: 1px;
+            background: #eee;
+            margin: 16px 0;
+        }
+        .section-title {
+            font-size: 13px;
+            color: #888;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input[type="color"]:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        input[type="text"]:disabled {
+            background: #f5f5f5;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 </head>
 <body>
     <div class="container">
         <h1>图片文字水印服务</h1>
-        <p class="subtitle">上传图片，添加自定义文字水印，支持九宫格位置配置</p>
+        <p class="subtitle">上传图片，添加自定义文字水印 · 智能背景适配 · 九宫格位置配置</p>
         
         <div class="main-card">
             <div class="form-section">
@@ -312,6 +385,36 @@
                             <input type="color" id="colorInput" name="color" value="#FFFFFF">
                             <input type="text" id="colorText" value="#FFFFFF" style="flex:1">
                         </div>
+                    </div>
+
+                    <div class="divider"></div>
+                    <div class="section-title">智能选项</div>
+
+                    <div class="switch-row">
+                        <div>
+                            <div class="switch-label">自动适配颜色</div>
+                            <div class="switch-desc">根据背景亮度自动选择黑色或白色</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="autoColorInput" name="auto_color" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="switch-row">
+                        <div>
+                            <div class="switch-label">文字描边</div>
+                            <div class="switch-desc">添加文字描边增强可见性</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="strokeInput" name="stroke" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="form-group" id="strokeWidthGroup">
+                        <label>描边粗细 <span class="range-value" id="strokeWidthValue">2</span>px</label>
+                        <input type="range" id="strokeWidthInput" name="stroke_width" min="0" max="5" value="2">
                     </div>
 
                     <button type="submit" class="btn-submit" id="submitBtn">生成水印图片</button>
@@ -413,6 +516,26 @@
             }
         });
 
+        const autoColorInput = document.getElementById('autoColorInput');
+        const strokeInput = document.getElementById('strokeInput');
+        const strokeWidthGroup = document.getElementById('strokeWidthGroup');
+        const strokeWidthInput = document.getElementById('strokeWidthInput');
+        const strokeWidthValue = document.getElementById('strokeWidthValue');
+
+        autoColorInput.addEventListener('change', () => {
+            const isDisabled = autoColorInput.checked;
+            colorInput.disabled = isDisabled;
+            colorText.disabled = isDisabled;
+        });
+
+        strokeInput.addEventListener('change', () => {
+            strokeWidthGroup.style.display = strokeInput.checked ? 'block' : 'none';
+        });
+
+        strokeWidthInput.addEventListener('input', () => {
+            strokeWidthValue.textContent = strokeWidthInput.value;
+        });
+
         document.getElementById('watermarkForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             hideError();
@@ -421,6 +544,8 @@
             if (!document.getElementById('textInput').value.trim()) { showError('请输入水印文字'); return; }
 
             const formData = new FormData(e.target);
+            formData.set('auto_color', autoColorInput.checked ? 'true' : 'false');
+            formData.set('stroke', strokeInput.checked ? 'true' : 'false');
             loading.classList.add('show');
             submitBtn.disabled = true;
             downloadBtn.classList.remove('show');

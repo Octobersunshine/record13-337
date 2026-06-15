@@ -55,8 +55,43 @@ def hex_to_rgb(hex_color):
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
     return (255, 255, 255)
 
+def rgb_to_luminance(r, g, b):
+    return 0.299 * r + 0.587 * g + 0.114 * b
+
+def get_region_luminance(img, x, y, width, height):
+    x = max(0, x)
+    y = max(0, y)
+    width = min(width, img.width - x)
+    height = min(height, img.height - y)
+    
+    if width <= 0 or height <= 0:
+        return 128
+    
+    region = img.crop((x, y, x + width, y + height))
+    region_rgb = region.convert('RGB')
+    
+    pixels = list(region_rgb.getdata())
+    total_luminance = 0
+    for r, g, b in pixels:
+        total_luminance += rgb_to_luminance(r, g, b)
+    
+    return total_luminance / len(pixels)
+
+def auto_select_color(background_luminance):
+    if background_luminance < 128:
+        return (255, 255, 255)
+    else:
+        return (0, 0, 0)
+
+def get_contrast_color(base_luminance):
+    if base_luminance < 128:
+        return (255, 255, 255), (0, 0, 0)
+    else:
+        return (0, 0, 0), (255, 255, 255)
+
 def add_watermark(image_file, text, position='bottom-right', font_size=36,
-                  color='#FFFFFF', opacity=150, margin=20, angle=0):
+                  color='#FFFFFF', opacity=150, margin=20, angle=0,
+                  auto_color=True, stroke=True, stroke_width=2):
     img = Image.open(image_file).convert('RGBA')
     txt_layer = Image.new('RGBA', img.size, (255, 255, 255, 0))
     
@@ -77,19 +112,44 @@ def add_watermark(image_file, text, position='bottom-right', font_size=36,
     
     x, y = calculate_position(img.width, img.height, text_width, text_height, position, margin)
     
-    rgb_color = hex_to_rgb(color)
-    fill_color = (rgb_color[0], rgb_color[1], rgb_color[2], opacity)
+    sample_margin = max(margin - 5, 0)
+    bg_luminance = get_region_luminance(
+        img, x - sample_margin, y - sample_margin,
+        text_width + sample_margin * 2, text_height + sample_margin * 2
+    )
+    
+    if auto_color:
+        text_rgb, stroke_rgb = get_contrast_color(bg_luminance)
+    else:
+        text_rgb = hex_to_rgb(color)
+        stroke_rgb = (0, 0, 0) if bg_luminance >= 128 else (255, 255, 255)
+    
+    fill_color = (text_rgb[0], text_rgb[1], text_rgb[2], opacity)
+    stroke_color = (stroke_rgb[0], stroke_rgb[1], stroke_rgb[2], opacity)
     
     if angle != 0:
         text_img = Image.new('RGBA', (text_width + 20, text_height + 20), (255, 255, 255, 0))
         text_draw = ImageDraw.Draw(text_img)
-        text_draw.text((10, 10), text, font=font, fill=fill_color)
+        
+        tx, ty = 10, 10
+        if stroke:
+            for dx in range(-stroke_width, stroke_width + 1):
+                for dy in range(-stroke_width, stroke_width + 1):
+                    if dx != 0 or dy != 0:
+                        text_draw.text((tx + dx, ty + dy), text, font=font, fill=stroke_color)
+        text_draw.text((tx, ty), text, font=font, fill=fill_color)
+        
         rotated_text = text_img.rotate(angle, expand=True, resample=Image.BICUBIC)
         
         rw, rh = rotated_text.size
         x, y = calculate_position(img.width, img.height, rw, rh, position, margin)
         txt_layer.paste(rotated_text, (x, y), rotated_text)
     else:
+        if stroke:
+            for dx in range(-stroke_width, stroke_width + 1):
+                for dy in range(-stroke_width, stroke_width + 1):
+                    if dx != 0 or dy != 0:
+                        draw.text((x + dx, y + dy), text, font=font, fill=stroke_color)
         draw.text((x, y), text, font=font, fill=fill_color)
     
     result = Image.alpha_composite(img, txt_layer)
@@ -154,9 +214,19 @@ def watermark_api():
     except (ValueError, TypeError):
         angle = 0
     
+    auto_color = request.form.get('auto_color', 'true').lower() == 'true'
+    stroke = request.form.get('stroke', 'true').lower() == 'true'
+    
+    try:
+        stroke_width = int(request.form.get('stroke_width', 2))
+        stroke_width = max(0, min(5, stroke_width))
+    except (ValueError, TypeError):
+        stroke_width = 2
+    
     try:
         output, mimetype = add_watermark(
-            file, text, position, font_size, color, opacity, margin, angle
+            file, text, position, font_size, color, opacity, margin, angle,
+            auto_color, stroke, stroke_width
         )
     except Exception as e:
         return jsonify({'error': f'处理图片时出错: {str(e)}'}), 500
