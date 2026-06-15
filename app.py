@@ -89,10 +89,9 @@ def get_contrast_color(base_luminance):
     else:
         return (0, 0, 0), (255, 255, 255)
 
-def add_watermark(image_file, text, position='bottom-right', font_size=36,
-                  color='#FFFFFF', opacity=150, margin=20, angle=0,
-                  auto_color=True, stroke=True, stroke_width=2):
-    img = Image.open(image_file).convert('RGBA')
+def add_text_watermark(img, text, position='bottom-right', font_size=36,
+                       color='#FFFFFF', opacity=150, margin=20, angle=0,
+                       auto_color=True, stroke=True, stroke_width=2):
     txt_layer = Image.new('RGBA', img.size, (255, 255, 255, 0))
     
     font_path = get_font_path()
@@ -152,16 +151,67 @@ def add_watermark(image_file, text, position='bottom-right', font_size=36,
                         draw.text((x + dx, y + dy), text, font=font, fill=stroke_color)
         draw.text((x, y), text, font=font, fill=fill_color)
     
-    result = Image.alpha_composite(img, txt_layer)
+    return Image.alpha_composite(img, txt_layer)
+
+def add_logo_watermark(img, logo_file, position='bottom-right',
+                       logo_scale=20, logo_opacity=200, logo_margin=30, logo_angle=0):
+    logo = Image.open(logo_file).convert('RGBA')
+    
+    target_width = int(img.width * logo_scale / 100)
+    aspect_ratio = logo.height / logo.width
+    target_height = int(target_width * aspect_ratio)
+    
+    logo = logo.resize((target_width, target_height), Image.LANCZOS)
+    
+    if logo_opacity < 255:
+        alpha = logo.split()[3]
+        alpha = alpha.point(lambda p: int(p * logo_opacity / 255))
+        logo.putalpha(alpha)
+    
+    if logo_angle != 0:
+        logo = logo.rotate(logo_angle, expand=True, resample=Image.BICUBIC)
+    
+    x, y = calculate_position(img.width, img.height, logo.width, logo.height, position, logo_margin)
+    
+    logo_layer = Image.new('RGBA', img.size, (255, 255, 255, 0))
+    logo_layer.paste(logo, (x, y), logo)
+    
+    return Image.alpha_composite(img, logo_layer)
+
+def process_watermark(image_file, text=None, logo_file=None,
+                      text_position='bottom-right', font_size=36,
+                      color='#FFFFFF', text_opacity=150, text_margin=20, text_angle=0,
+                      auto_color=True, stroke=True, stroke_width=2,
+                      logo_position='top-right', logo_scale=20,
+                      logo_opacity=200, logo_margin=30, logo_angle=0):
+    img = Image.open(image_file).convert('RGBA')
+    
+    if logo_file:
+        img = add_logo_watermark(
+            img, logo_file, logo_position,
+            logo_scale, logo_opacity, logo_margin, logo_angle
+        )
+    
+    if text and text.strip():
+        img = add_text_watermark(
+            img, text, text_position, font_size,
+            color, text_opacity, text_margin, text_angle,
+            auto_color, stroke, stroke_width
+        )
+    
+    if not text and not logo_file:
+        raise ValueError('至少需要提供文字水印或Logo水印')
     
     output = io.BytesIO()
-    original_format = img.format if img.format else 'PNG'
+    original_format = Image.open(image_file).format or 'PNG'
+    image_file.seek(0)
+    
     if original_format in ('JPEG', 'JPG'):
-        result = result.convert('RGB')
-        result.save(output, format='JPEG', quality=95)
+        img = img.convert('RGB')
+        img.save(output, format='JPEG', quality=95)
         mimetype = 'image/jpeg'
     else:
-        result.save(output, format='PNG')
+        img.save(output, format='PNG')
         mimetype = 'image/png'
     
     output.seek(0)
@@ -184,12 +234,25 @@ def watermark_api():
         return jsonify({'error': '不支持的文件格式，支持: png, jpg, jpeg, bmp, gif, webp'}), 400
     
     text = request.form.get('text', '')
-    if not text:
-        return jsonify({'error': '水印文字不能为空'}), 400
+    enable_text = request.form.get('enable_text', 'true').lower() == 'true'
+    if enable_text and not text.strip():
+        return jsonify({'error': '已启用文字水印但水印文字为空'}), 400
     
-    position = request.form.get('position', 'bottom-right')
-    if position not in POSITION_MAP:
-        return jsonify({'error': '无效的位置参数'}), 400
+    enable_logo = request.form.get('enable_logo', 'false').lower() == 'true'
+    logo_file = None
+    if enable_logo:
+        if 'logo' not in request.files or request.files['logo'].filename == '':
+            return jsonify({'error': '已启用Logo水印但未上传Logo文件'}), 400
+        logo_file = request.files['logo']
+        if not allowed_file(logo_file.filename):
+            return jsonify({'error': 'Logo文件格式不支持'}), 400
+    
+    if not enable_text and not enable_logo:
+        return jsonify({'error': '请至少启用一种水印类型（文字或Logo）'}), 400
+    
+    text_position = request.form.get('text_position', 'bottom-right')
+    if text_position not in POSITION_MAP:
+        return jsonify({'error': '无效的文字位置参数'}), 400
     
     try:
         font_size = int(request.form.get('font_size', 36))
@@ -198,21 +261,21 @@ def watermark_api():
     
     color = request.form.get('color', '#FFFFFF')
     try:
-        opacity = int(request.form.get('opacity', 150))
-        opacity = max(0, min(255, opacity))
+        text_opacity = int(request.form.get('text_opacity', 150))
+        text_opacity = max(0, min(255, text_opacity))
     except (ValueError, TypeError):
-        opacity = 150
+        text_opacity = 150
     
     try:
-        margin = int(request.form.get('margin', 20))
-        margin = max(0, margin)
+        text_margin = int(request.form.get('text_margin', 20))
+        text_margin = max(0, text_margin)
     except (ValueError, TypeError):
-        margin = 20
+        text_margin = 20
     
     try:
-        angle = int(request.form.get('angle', 0))
+        text_angle = int(request.form.get('text_angle', 0))
     except (ValueError, TypeError):
-        angle = 0
+        text_angle = 0
     
     auto_color = request.form.get('auto_color', 'true').lower() == 'true'
     stroke = request.form.get('stroke', 'true').lower() == 'true'
@@ -223,10 +286,52 @@ def watermark_api():
     except (ValueError, TypeError):
         stroke_width = 2
     
+    logo_position = request.form.get('logo_position', 'top-right')
+    if logo_position not in POSITION_MAP:
+        return jsonify({'error': '无效的Logo位置参数'}), 400
+    
     try:
-        output, mimetype = add_watermark(
-            file, text, position, font_size, color, opacity, margin, angle,
-            auto_color, stroke, stroke_width
+        logo_scale = int(request.form.get('logo_scale', 20))
+        logo_scale = max(1, min(100, logo_scale))
+    except (ValueError, TypeError):
+        logo_scale = 20
+    
+    try:
+        logo_opacity = int(request.form.get('logo_opacity', 200))
+        logo_opacity = max(0, min(255, logo_opacity))
+    except (ValueError, TypeError):
+        logo_opacity = 200
+    
+    try:
+        logo_margin = int(request.form.get('logo_margin', 30))
+        logo_margin = max(0, logo_margin)
+    except (ValueError, TypeError):
+        logo_margin = 30
+    
+    try:
+        logo_angle = int(request.form.get('logo_angle', 0))
+    except (ValueError, TypeError):
+        logo_angle = 0
+    
+    try:
+        output, mimetype = process_watermark(
+            file,
+            text=text if enable_text else None,
+            logo_file=logo_file if enable_logo else None,
+            text_position=text_position,
+            font_size=font_size,
+            color=color,
+            text_opacity=text_opacity,
+            text_margin=text_margin,
+            text_angle=text_angle,
+            auto_color=auto_color,
+            stroke=stroke,
+            stroke_width=stroke_width,
+            logo_position=logo_position,
+            logo_scale=logo_scale,
+            logo_opacity=logo_opacity,
+            logo_margin=logo_margin,
+            logo_angle=logo_angle
         )
     except Exception as e:
         return jsonify({'error': f'处理图片时出错: {str(e)}'}), 500

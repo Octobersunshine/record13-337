@@ -316,11 +316,115 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        .tab-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e8e8e8;
+            background: #f9f9f9;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .tab-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border-color: transparent;
+        }
+        .watermark-section {
+            display: none;
+            padding: 20px;
+            background: #fafafc;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .watermark-section.show {
+            display: block;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .section-header-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #333;
+        }
+        .logo-upload {
+            display: block;
+            border: 2px dashed #d0d0d0;
+            border-radius: 10px;
+            padding: 30px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fff;
+        }
+        .logo-upload:hover, .logo-upload.dragover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .logo-upload-icon { font-size: 32px; margin-bottom: 8px; }
+        .logo-upload-text { color: #666; font-size: 13px; }
+        .logo-preview-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #fff;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .logo-preview-img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            border: 1px solid #eee;
+            border-radius: 6px;
+        }
+        .logo-preview-info { flex: 1; }
+        .logo-preview-name { font-size: 13px; font-weight: 600; color: #333; }
+        .logo-remove {
+            color: #ef4444;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: #fef2f2;
+        }
+        .logo-remove:hover { background: #fee2e2; }
+        .compact-form-group {
+            margin-bottom: 16px;
+        }
+        .compact-label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
 </head>
 <body>
     <div class="container">
-        <h1>图片文字水印服务</h1>
-        <p class="subtitle">上传图片，添加自定义文字水印 · 智能背景适配 · 九宫格位置配置</p>
+        <h1>图片水印服务</h1>
+        <p class="subtitle">支持文字水印 + Logo 图片水印 · 智能背景适配 · 九宫格位置配置</p>
         
         <div class="main-card">
             <div class="form-section">
@@ -336,85 +440,168 @@
                         </label>
                     </div>
 
-                    <div class="form-group">
-                        <label>水印文字</label>
-                        <input type="text" id="textInput" name="text" placeholder="请输入水印文字，如：Copyright 2026" value="© My Watermark">
+                    <div class="tab-group">
+                        <button type="button" class="tab-btn active" data-tab="text">
+                            <span>✍️</span><span>文字水印</span>
+                        </button>
+                        <button type="button" class="tab-btn" data-tab="logo">
+                            <span>🖼️</span><span>Logo水印</span>
+                        </button>
+                        <button type="button" class="tab-btn" data-tab="both">
+                            <span>✨</span><span>全部启用</span>
+                        </button>
                     </div>
 
-                    <div class="form-group">
-                        <label>水印位置</label>
-                        <div class="position-grid" id="positionGrid">
-                            <button type="button" class="position-btn" data-value="top-left">左上</button>
-                            <button type="button" class="position-btn" data-value="top-center">上中</button>
-                            <button type="button" class="position-btn" data-value="top-right">右上</button>
-                            <button type="button" class="position-btn" data-value="center-left">左中</button>
-                            <button type="button" class="position-btn active" data-value="center">居中</button>
-                            <button type="button" class="position-btn" data-value="center-right">右中</button>
-                            <button type="button" class="position-btn" data-value="bottom-left">左下</button>
-                            <button type="button" class="position-btn" data-value="bottom-center">下中</button>
-                            <button type="button" class="position-btn" data-value="bottom-right">右下</button>
+                    <div class="watermark-section show" id="textSection">
+                        <div class="section-header">
+                            <div class="section-header-title">✍️ 文字水印设置</div>
+                            <label class="switch">
+                                <input type="checkbox" id="enableTextInput" name="enable_text" checked>
+                                <span class="slider"></span>
+                            </label>
                         </div>
-                        <input type="hidden" id="positionInput" name="position" value="center">
+
+                        <div class="compact-form-group">
+                            <label class="compact-label">水印文字</label>
+                            <input type="text" id="textInput" name="text" placeholder="请输入水印文字，如：Copyright 2026" value="© My Watermark">
+                        </div>
+
+                        <div class="compact-form-group">
+                            <label class="compact-label">文字位置</label>
+                            <div class="position-grid" id="textPositionGrid">
+                                <button type="button" class="position-btn" data-value="top-left">左上</button>
+                                <button type="button" class="position-btn" data-value="top-center">上中</button>
+                                <button type="button" class="position-btn" data-value="top-right">右上</button>
+                                <button type="button" class="position-btn" data-value="center-left">左中</button>
+                                <button type="button" class="position-btn" data-value="center">居中</button>
+                                <button type="button" class="position-btn" data-value="center-right">右中</button>
+                                <button type="button" class="position-btn" data-value="bottom-left">左下</button>
+                                <button type="button" class="position-btn active" data-value="bottom-right">右下</button>
+                                <button type="button" class="position-btn" data-value="bottom-center">下中</button>
+                            </div>
+                            <input type="hidden" id="textPositionInput" name="text_position" value="bottom-right">
+                        </div>
+
+                        <div class="row-2">
+                            <div class="compact-form-group">
+                                <label class="compact-label">字体大小 <span class="range-value" id="fontSizeValue">36</span></label>
+                                <input type="range" id="fontSizeInput" name="font_size" min="10" max="200" value="36">
+                            </div>
+                            <div class="compact-form-group">
+                                <label class="compact-label">透明度 <span class="range-value" id="textOpacityValue">150</span></label>
+                                <input type="range" id="textOpacityInput" name="text_opacity" min="0" max="255" value="150">
+                            </div>
+                        </div>
+
+                        <div class="row-2">
+                            <div class="compact-form-group">
+                                <label class="compact-label">边距 <span class="range-value" id="textMarginValue">20</span></label>
+                                <input type="range" id="textMarginInput" name="text_margin" min="0" max="200" value="20">
+                            </div>
+                            <div class="compact-form-group">
+                                <label class="compact-label">旋转 <span class="range-value" id="textAngleValue">0</span>°</label>
+                                <input type="range" id="textAngleInput" name="text_angle" min="-180" max="180" value="0">
+                            </div>
+                        </div>
+
+                        <div class="compact-form-group">
+                            <label class="compact-label">文字颜色</label>
+                            <div class="color-row">
+                                <input type="color" id="colorInput" name="color" value="#FFFFFF">
+                                <input type="text" id="colorText" value="#FFFFFF" style="flex:1">
+                            </div>
+                        </div>
+
+                        <div class="switch-row">
+                            <div>
+                                <div class="switch-label">自动适配颜色</div>
+                                <div class="switch-desc">根据背景亮度自动选色</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="autoColorInput" name="auto_color" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="switch-row">
+                            <div>
+                                <div class="switch-label">文字描边</div>
+                                <div class="switch-desc">增强可见性</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="strokeInput" name="stroke" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="compact-form-group" id="strokeWidthGroup">
+                            <label class="compact-label">描边粗细 <span class="range-value" id="strokeWidthValue">2</span>px</label>
+                            <input type="range" id="strokeWidthInput" name="stroke_width" min="0" max="5" value="2">
+                        </div>
                     </div>
 
-                    <div class="row-2">
-                        <div class="form-group">
-                            <label>字体大小 <span class="range-value" id="fontSizeValue">36</span></label>
-                            <input type="range" id="fontSizeInput" name="font_size" min="10" max="200" value="36">
+                    <div class="watermark-section" id="logoSection">
+                        <div class="section-header">
+                            <div class="section-header-title">🖼️ Logo水印设置</div>
+                            <label class="switch">
+                                <input type="checkbox" id="enableLogoInput" name="enable_logo">
+                                <span class="slider"></span>
+                            </label>
                         </div>
-                        <div class="form-group">
-                            <label>透明度 <span class="range-value" id="opacityValue">150</span></label>
-                            <input type="range" id="opacityInput" name="opacity" min="0" max="255" value="150">
-                        </div>
-                    </div>
 
-                    <div class="row-2">
-                        <div class="form-group">
-                            <label>边距 <span class="range-value" id="marginValue">20</span></label>
-                            <input type="range" id="marginInput" name="margin" min="0" max="200" value="20">
+                        <div class="compact-form-group" id="logoUploadGroup">
+                            <label class="compact-label">上传Logo图片</label>
+                            <label class="logo-upload" id="logoUpload">
+                                <input type="file" id="logoInput" name="logo" accept="image/png,image/jpeg,image/jpg,image/bmp,image/gif,image/webp" style="display:none">
+                                <div class="logo-upload-icon">🏷️</div>
+                                <div class="logo-upload-text">点击上传Logo（推荐透明PNG）</div>
+                            </label>
+                            <div class="logo-preview-wrap" id="logoPreviewWrap" style="display:none">
+                                <img id="logoPreviewImg" class="logo-preview-img" alt="Logo预览">
+                                <div class="logo-preview-info">
+                                    <div class="logo-preview-name" id="logoPreviewName"></div>
+                                </div>
+                                <span class="logo-remove" id="logoRemoveBtn">移除</span>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>旋转角度 <span class="range-value" id="angleValue">0</span>°</label>
-                            <input type="range" id="angleInput" name="angle" min="-180" max="180" value="0">
+
+                        <div class="compact-form-group">
+                            <label class="compact-label">Logo位置</label>
+                            <div class="position-grid" id="logoPositionGrid">
+                                <button type="button" class="position-btn active" data-value="top-right">右上</button>
+                                <button type="button" class="position-btn" data-value="top-center">上中</button>
+                                <button type="button" class="position-btn" data-value="top-left">左上</button>
+                                <button type="button" class="position-btn" data-value="center-right">右中</button>
+                                <button type="button" class="position-btn" data-value="center">居中</button>
+                                <button type="button" class="position-btn" data-value="center-left">左中</button>
+                                <button type="button" class="position-btn" data-value="bottom-right">右下</button>
+                                <button type="button" class="position-btn" data-value="bottom-center">下中</button>
+                                <button type="button" class="position-btn" data-value="bottom-left">左下</button>
+                            </div>
+                            <input type="hidden" id="logoPositionInput" name="logo_position" value="top-right">
                         </div>
-                    </div>
 
-                    <div class="form-group">
-                        <label>文字颜色</label>
-                        <div class="color-row">
-                            <input type="color" id="colorInput" name="color" value="#FFFFFF">
-                            <input type="text" id="colorText" value="#FFFFFF" style="flex:1">
+                        <div class="row-2">
+                            <div class="compact-form-group">
+                                <label class="compact-label">Logo大小 <span class="range-value" id="logoScaleValue">20</span>%</label>
+                                <input type="range" id="logoScaleInput" name="logo_scale" min="1" max="100" value="20">
+                            </div>
+                            <div class="compact-form-group">
+                                <label class="compact-label">透明度 <span class="range-value" id="logoOpacityValue">200</span></label>
+                                <input type="range" id="logoOpacityInput" name="logo_opacity" min="0" max="255" value="200">
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="divider"></div>
-                    <div class="section-title">智能选项</div>
-
-                    <div class="switch-row">
-                        <div>
-                            <div class="switch-label">自动适配颜色</div>
-                            <div class="switch-desc">根据背景亮度自动选择黑色或白色</div>
+                        <div class="row-2">
+                            <div class="compact-form-group">
+                                <label class="compact-label">边距 <span class="range-value" id="logoMarginValue">30</span></label>
+                                <input type="range" id="logoMarginInput" name="logo_margin" min="0" max="200" value="30">
+                            </div>
+                            <div class="compact-form-group">
+                                <label class="compact-label">旋转 <span class="range-value" id="logoAngleValue">0</span>°</label>
+                                <input type="range" id="logoAngleInput" name="logo_angle" min="-180" max="180" value="0">
+                            </div>
                         </div>
-                        <label class="switch">
-                            <input type="checkbox" id="autoColorInput" name="auto_color" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="switch-row">
-                        <div>
-                            <div class="switch-label">文字描边</div>
-                            <div class="switch-desc">添加文字描边增强可见性</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="strokeInput" name="stroke" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="form-group" id="strokeWidthGroup">
-                        <label>描边粗细 <span class="range-value" id="strokeWidthValue">2</span>px</label>
-                        <input type="range" id="strokeWidthInput" name="stroke_width" min="0" max="5" value="2">
                     </div>
 
                     <button type="submit" class="btn-submit" id="submitBtn">生成水印图片</button>
@@ -486,22 +673,62 @@
             }
         });
 
-        const positionGrid = document.getElementById('positionGrid');
-        const positionInput = document.getElementById('positionInput');
-        positionGrid.addEventListener('click', (e) => {
-            const btn = e.target.closest('.position-btn');
-            if (btn) {
-                positionGrid.querySelectorAll('.position-btn').forEach(b => b.classList.remove('active'));
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const textSection = document.getElementById('textSection');
+        const logoSection = document.getElementById('logoSection');
+        const enableTextInput = document.getElementById('enableTextInput');
+        const enableLogoInput = document.getElementById('enableLogoInput');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                tabBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                positionInput.value = btn.dataset.value;
-            }
+
+                if (tab === 'text') {
+                    textSection.classList.add('show');
+                    logoSection.classList.remove('show');
+                    enableTextInput.checked = true;
+                    enableLogoInput.checked = false;
+                } else if (tab === 'logo') {
+                    textSection.classList.remove('show');
+                    logoSection.classList.add('show');
+                    enableTextInput.checked = false;
+                    enableLogoInput.checked = true;
+                } else {
+                    textSection.classList.add('show');
+                    logoSection.classList.add('show');
+                    enableTextInput.checked = true;
+                    enableLogoInput.checked = true;
+                }
+            });
         });
+
+        function setupPositionGrid(gridId, inputId) {
+            const grid = document.getElementById(gridId);
+            const input = document.getElementById(inputId);
+            grid.addEventListener('click', (e) => {
+                const btn = e.target.closest('.position-btn');
+                if (btn) {
+                    grid.querySelectorAll('.position-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    input.value = btn.dataset.value;
+                }
+            });
+        }
+        setupPositionGrid('textPositionGrid', 'textPositionInput');
+        setupPositionGrid('logoPositionGrid', 'logoPositionInput');
 
         const rangeInputs = [
             { input: document.getElementById('fontSizeInput'), display: document.getElementById('fontSizeValue') },
-            { input: document.getElementById('opacityInput'), display: document.getElementById('opacityValue') },
-            { input: document.getElementById('marginInput'), display: document.getElementById('marginValue') },
-            { input: document.getElementById('angleInput'), display: document.getElementById('angleValue') },
+            { input: document.getElementById('textOpacityInput'), display: document.getElementById('textOpacityValue') },
+            { input: document.getElementById('textMarginInput'), display: document.getElementById('textMarginValue') },
+            { input: document.getElementById('textAngleInput'), display: document.getElementById('textAngleValue') },
+            { input: document.getElementById('logoScaleInput'), display: document.getElementById('logoScaleValue') },
+            { input: document.getElementById('logoOpacityInput'), display: document.getElementById('logoOpacityValue') },
+            { input: document.getElementById('logoMarginInput'), display: document.getElementById('logoMarginValue') },
+            { input: document.getElementById('logoAngleInput'), display: document.getElementById('logoAngleValue') },
+            { input: document.getElementById('strokeWidthInput'), display: document.getElementById('strokeWidthValue') },
         ];
         rangeInputs.forEach(({input, display}) => {
             input.addEventListener('input', () => display.textContent = input.value);
@@ -519,8 +746,6 @@
         const autoColorInput = document.getElementById('autoColorInput');
         const strokeInput = document.getElementById('strokeInput');
         const strokeWidthGroup = document.getElementById('strokeWidthGroup');
-        const strokeWidthInput = document.getElementById('strokeWidthInput');
-        const strokeWidthValue = document.getElementById('strokeWidthValue');
 
         autoColorInput.addEventListener('change', () => {
             const isDisabled = autoColorInput.checked;
@@ -532,8 +757,49 @@
             strokeWidthGroup.style.display = strokeInput.checked ? 'block' : 'none';
         });
 
-        strokeWidthInput.addEventListener('input', () => {
-            strokeWidthValue.textContent = strokeWidthInput.value;
+        if (autoColorInput.checked) {
+            colorInput.disabled = true;
+            colorText.disabled = true;
+        }
+
+        const logoInput = document.getElementById('logoInput');
+        const logoUpload = document.getElementById('logoUpload');
+        const logoPreviewWrap = document.getElementById('logoPreviewWrap');
+        const logoPreviewImg = document.getElementById('logoPreviewImg');
+        const logoPreviewName = document.getElementById('logoPreviewName');
+        const logoRemoveBtn = document.getElementById('logoRemoveBtn');
+
+        logoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                logoPreviewName.textContent = file.name;
+                logoPreviewImg.src = URL.createObjectURL(file);
+                logoUpload.style.display = 'none';
+                logoPreviewWrap.style.display = 'flex';
+            }
+        });
+
+        logoRemoveBtn.addEventListener('click', () => {
+            logoInput.value = '';
+            logoUpload.style.display = 'block';
+            logoPreviewWrap.style.display = 'none';
+        });
+
+        logoUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            logoUpload.classList.add('dragover');
+        });
+        logoUpload.addEventListener('dragleave', () => {
+            logoUpload.classList.remove('dragover');
+        });
+        logoUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            logoUpload.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                logoInput.files = e.dataTransfer.files;
+                logoInput.dispatchEvent(new Event('change'));
+            }
         });
 
         document.getElementById('watermarkForm').addEventListener('submit', async (e) => {
@@ -541,11 +807,22 @@
             hideError();
 
             if (!imageInput.files[0]) { showError('请先上传图片'); return; }
-            if (!document.getElementById('textInput').value.trim()) { showError('请输入水印文字'); return; }
+            if (!enableTextInput.checked && !enableLogoInput.checked) {
+                showError('请至少启用一种水印类型'); return;
+            }
+            if (enableTextInput.checked && !document.getElementById('textInput').value.trim()) {
+                showError('已启用文字水印但文字为空'); return;
+            }
+            if (enableLogoInput.checked && !logoInput.files[0]) {
+                showError('已启用Logo水印但未上传Logo'); return;
+            }
 
             const formData = new FormData(e.target);
+            formData.set('enable_text', enableTextInput.checked ? 'true' : 'false');
+            formData.set('enable_logo', enableLogoInput.checked ? 'true' : 'false');
             formData.set('auto_color', autoColorInput.checked ? 'true' : 'false');
             formData.set('stroke', strokeInput.checked ? 'true' : 'false');
+
             loading.classList.add('show');
             submitBtn.disabled = true;
             downloadBtn.classList.remove('show');
